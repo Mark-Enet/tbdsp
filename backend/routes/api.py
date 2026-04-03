@@ -1,4 +1,3 @@
-import logging
 import os
 import re
 
@@ -6,8 +5,11 @@ from flask import Blueprint, current_app, jsonify
 
 api_bp = Blueprint("api", __name__, url_prefix="/api")
 
-# Only allow simple alphanumeric path segments (no slashes, dots, or parent refs)
-_SAFE_SEGMENT = re.compile(r"^[A-Za-z0-9_-]+$")
+# Only allow simple alphanumeric path segments — no slashes, dots, or hyphens at
+# the start/end (guards against path traversal and shell-ambiguous names).
+_SAFE_SEGMENT = re.compile(r"^[A-Za-z0-9_]([A-Za-z0-9_-]*[A-Za-z0-9_])?$")
+
+_ALLOWED_FILES = {"schema.sql", "sample_data.sql", "README.md", "erd.mmd"}
 
 
 def _schemas_dir():
@@ -26,19 +28,17 @@ def _list_schemas():
     if not os.path.isdir(base):
         return schemas
 
-    for domain in sorted(os.listdir(base)):
-        domain_path = os.path.join(base, domain)
-        if not os.path.isdir(domain_path):
+    for domain_entry in sorted(os.scandir(base), key=lambda e: e.name):
+        if not domain_entry.is_dir():
             continue
-        for db in sorted(os.listdir(domain_path)):
-            db_path = os.path.join(domain_path, db)
-            if not os.path.isdir(db_path):
+        for db_entry in sorted(os.scandir(domain_entry.path), key=lambda e: e.name):
+            if not db_entry.is_dir():
                 continue
 
-            files = os.listdir(db_path)
+            files = {e.name for e in os.scandir(db_entry.path) if e.is_file()}
             entry = {
-                "domain": domain,
-                "database": db,
+                "domain": domain_entry.name,
+                "database": db_entry.name,
                 "files": {
                     "schema": "schema.sql" if "schema.sql" in files else None,
                     "sample_data": "sample_data.sql" if "sample_data.sql" in files else None,
@@ -51,6 +51,25 @@ def _list_schemas():
     return schemas
 
 
+def _find_db_path(domain, database):
+    """Walk the filesystem to find the directory for *domain*/*database*.
+
+    Returns the real, filesystem-derived path (not built from user input) so that
+    subsequent file operations are not tainted by user-supplied values.
+    Returns ``None`` if the combination does not exist.
+    """
+    schemas_base = os.path.realpath(_schemas_dir())
+    try:
+        for domain_entry in os.scandir(schemas_base):
+            if domain_entry.is_dir() and domain_entry.name == domain:
+                for db_entry in os.scandir(domain_entry.path):
+                    if db_entry.is_dir() and db_entry.name == database:
+                        return db_entry.path  # filesystem-derived, not user input
+    except OSError:
+        pass
+    return None
+
+
 @api_bp.route("/domains", methods=["GET"])
 def list_domains():
     """Return a sorted list of unique domain names found in the schemas directory."""
@@ -59,7 +78,7 @@ def list_domains():
         return jsonify([])
 
     domains = sorted(
-        name for name in os.listdir(base) if os.path.isdir(os.path.join(base, name))
+        e.name for e in os.scandir(base) if e.is_dir()
     )
     return jsonify(domains)
 
@@ -98,19 +117,19 @@ def get_schema(domain, database):
 @api_bp.route("/schemas/<domain>/<database>/<filename>", methods=["GET"])
 def get_schema_file(domain, database, filename):
     """Return the raw content of a schema file (schema.sql, sample_data.sql, README.md, erd.mmd)."""
-    allowed = {"schema.sql", "sample_data.sql", "README.md", "erd.mmd"}
-    if filename not in allowed:
+    if filename not in _ALLOWED_FILES:
         return jsonify({"error": "File not found"}), 404
 
     if not _is_safe_segment(domain) or not _is_safe_segment(database):
         return jsonify({"error": "Invalid domain or database name"}), 400
 
-    # Resolve the real path and confirm it stays inside the schemas directory
-    schemas_base = os.path.realpath(_schemas_dir())
-    file_path = os.path.realpath(os.path.join(schemas_base, domain, database, filename))
-    if os.path.commonpath([schemas_base, file_path]) != schemas_base:
+    # Resolve the directory from the filesystem (path is NOT built from user input).
+    db_path = _find_db_path(domain, database)
+    if db_path is None:
         return jsonify({"error": "File not found"}), 404
 
+    # filename is from a known allowlist; db_path is filesystem-derived.
+    file_path = os.path.join(db_path, filename)
     if not os.path.isfile(file_path):
         return jsonify({"error": "File not found"}), 404
 

@@ -11,7 +11,7 @@ def create_app(env=None):
     app = Flask(__name__)
 
     if env is None:
-        env = os.environ.get("FLASK_ENV", "default")
+        env = os.environ.get("APP_ENV", "default")
     app.config.from_object(config[env])
 
     CORS(app)

@@ -1,12 +1,21 @@
 import os
+import re
 
 from flask import Blueprint, current_app, jsonify
 
 api_bp = Blueprint("api", __name__, url_prefix="/api")
 
+# Only allow simple alphanumeric path segments (no slashes, dots, or parent refs)
+_SAFE_SEGMENT = re.compile(r"^[A-Za-z0-9_-]+$")
+
 
 def _schemas_dir():
     return current_app.config["SCHEMAS_DIR"]
+
+
+def _is_safe_segment(value):
+    """Return True only if *value* is a safe, single path segment."""
+    return bool(_SAFE_SEGMENT.match(value))
 
 
 def _list_schemas():
@@ -64,6 +73,8 @@ def list_schemas():
 @api_bp.route("/schemas/<domain>", methods=["GET"])
 def list_schemas_by_domain(domain):
     """Return metadata for all schemas belonging to a specific domain."""
+    if not _is_safe_segment(domain):
+        return jsonify({"error": "Invalid domain name"}), 400
     all_schemas = _list_schemas()
     filtered = [s for s in all_schemas if s["domain"] == domain]
     if not filtered:
@@ -74,6 +85,8 @@ def list_schemas_by_domain(domain):
 @api_bp.route("/schemas/<domain>/<database>", methods=["GET"])
 def get_schema(domain, database):
     """Return metadata for a specific domain/database schema."""
+    if not _is_safe_segment(domain) or not _is_safe_segment(database):
+        return jsonify({"error": "Invalid domain or database name"}), 400
     all_schemas = _list_schemas()
     for s in all_schemas:
         if s["domain"] == domain and s["database"] == database:
@@ -88,11 +101,22 @@ def get_schema_file(domain, database, filename):
     if filename not in allowed:
         return jsonify({"error": "File not found"}), 404
 
-    file_path = os.path.join(_schemas_dir(), domain, database, filename)
+    if not _is_safe_segment(domain) or not _is_safe_segment(database):
+        return jsonify({"error": "Invalid domain or database name"}), 400
+
+    # Resolve the real path and confirm it stays inside the schemas directory
+    schemas_base = os.path.realpath(_schemas_dir())
+    file_path = os.path.realpath(os.path.join(schemas_base, domain, database, filename))
+    if not file_path.startswith(schemas_base + os.sep):
+        return jsonify({"error": "File not found"}), 404
+
     if not os.path.isfile(file_path):
         return jsonify({"error": "File not found"}), 404
 
-    with open(file_path, "r", encoding="utf-8") as f:
-        content = f.read()
+    try:
+        with open(file_path, "r", encoding="utf-8") as f:
+            content = f.read()
+    except (OSError, UnicodeDecodeError) as exc:
+        return jsonify({"error": f"Could not read file: {exc}"}), 500
 
     return jsonify({"domain": domain, "database": database, "filename": filename, "content": content})

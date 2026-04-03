@@ -34,25 +34,32 @@ TBDSP/
 ├── backend/               ← future Flask/Node API
 ├── frontend/              ← future React web UI
 └── schemas/
-    └── ecommerce/
-        ├── postgresql/
-        │   ├── schema.sql
-        │   ├── sample_data.sql
-        │   ├── README.md
-        │   └── erd.mmd
-        └── mysql/         ← coming soon
+    ├── ecommerce/
+    │   ├── postgresql/
+    │   │   ├── schema.sql
+    │   │   ├── sample_data.sql
+    │   │   ├── README.md
+    │   │   └── erd.mmd
+    │   └── mysql/         ← coming soon
+    └── blogging/
+        └── postgresql/
+            ├── schema.sql
+            ├── sample_data.sql
+            ├── README.md
+            └── erd.mmd
 ```
 
 ---
 
 ## 🗂️ Schema Catalogue
 
-| Domain | Database | Status |
-|--------|----------|--------|
-| [E-Commerce](schemas/ecommerce/postgresql/README.md) | PostgreSQL | ✅ Available |
-| E-Commerce | MySQL | 🚧 Planned |
-| Healthcare | PostgreSQL | 🔜 Roadmap |
-| Finance | PostgreSQL | 🔜 Roadmap |
+| Domain | Database | Status | Description |
+|--------|----------|--------|-------------|
+| [E-Commerce](schemas/ecommerce/postgresql/README.md) | PostgreSQL | ✅ Available | Customers, product catalog, orders, payments, and reviews |
+| [Blogging / CMS](schemas/blogging/postgresql/README.md) | PostgreSQL | ✅ Available | Authors, hierarchical categories, tags, posts with publishing workflow, threaded comments, and media |
+| E-Commerce | MySQL | 🚧 Planned | |
+| Healthcare | PostgreSQL | 🔜 Roadmap | |
+| Finance | PostgreSQL | 🔜 Roadmap | |
 
 ---
 
@@ -82,6 +89,7 @@ Visit the [GitHub repository](https://github.com/Mark-Enet/tbdsp) and navigate i
 
 1. **Phase 1 — Schema Library** *(current)*
    - [x] E-Commerce domain — PostgreSQL
+   - [x] Blogging / CMS domain — PostgreSQL
    - [ ] E-Commerce domain — MySQL
    - [ ] Healthcare domain — PostgreSQL
    - [ ] Finance domain — PostgreSQL

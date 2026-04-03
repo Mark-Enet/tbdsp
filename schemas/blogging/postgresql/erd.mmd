@@ -1,0 +1,94 @@
+erDiagram
+
+    users {
+        uuid        id              PK
+        citext      email           UK
+        text        password_hash
+        varchar     display_name
+        text        bio
+        text        avatar_url
+        user_role   role
+        boolean     is_active
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    categories {
+        int         id          PK
+        int         parent_id   FK
+        varchar     name
+        varchar     slug        UK
+        text        description
+        timestamptz created_at
+    }
+
+    tags {
+        int         id      PK
+        varchar     name    UK
+        varchar     slug    UK
+        timestamptz created_at
+    }
+
+    posts {
+        uuid        id                  PK
+        uuid        author_id           FK
+        varchar     title
+        varchar     slug                UK
+        text        excerpt
+        text        body
+        post_status status
+        text        featured_image_url
+        varchar     meta_title
+        varchar     meta_description
+        int         like_count
+        int         view_count
+        timestamptz published_at
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    post_categories {
+        uuid    post_id     FK
+        int     category_id FK
+    }
+
+    post_tags {
+        uuid    post_id FK
+        int     tag_id  FK
+    }
+
+    comments {
+        uuid        id                  PK
+        uuid        post_id             FK
+        uuid        author_id           FK
+        uuid        parent_comment_id   FK
+        varchar     guest_name
+        citext      guest_email
+        text        body
+        boolean     is_approved
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    media {
+        uuid        id                  PK
+        uuid        uploader_id         FK
+        varchar     filename
+        varchar     original_filename
+        varchar     mime_type
+        bigint      file_size_bytes
+        text        storage_url
+        text        alt_text
+        timestamptz created_at
+    }
+
+    users          ||--o{ posts            : "authors"
+    users          ||--o{ comments         : "writes"
+    users          ||--o{ media            : "uploads"
+    categories     ||--o{ categories       : "parent of"
+    categories     ||--o{ post_categories  : "applied via"
+    tags           ||--o{ post_tags        : "applied via"
+    posts          ||--|{ post_categories  : "belongs to"
+    posts          ||--|{ post_tags        : "tagged with"
+    posts          ||--o{ comments         : "receives"
+    comments       ||--o{ comments         : "replies to"

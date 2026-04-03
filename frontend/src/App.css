@@ -1,38 +1,156 @@
-.App {
-  text-align: center;
+:root {
+  --bg-start: #f4efe5;
+  --bg-end: #ece3d5;
+  --panel: #fffdf8;
+  --ink: #1f2a37;
+  --muted: #516172;
+  --brand: #1e5d6f;
+  --border: #d9d0bf;
+  --ok: #166534;
+  --warn: #9a3412;
+  --pending: #374151;
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
+* {
+  box-sizing: border-box;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
+body {
+  margin: 0;
+  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+  color: var(--ink);
+  background: linear-gradient(160deg, var(--bg-start), var(--bg-end));
 }
 
-.App-header {
-  background-color: #282c34;
+.app-shell {
   min-height: 100vh;
+  padding: 2rem 1rem 2.5rem;
+  max-width: 1024px;
+  margin: 0 auto;
+}
+
+.hero {
+  margin-bottom: 1.5rem;
+}
+
+.eyebrow {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.82rem;
+  color: var(--brand);
+  font-weight: 700;
+}
+
+.hero h1 {
+  margin: 0.4rem 0;
+  line-height: 1.2;
+  font-size: clamp(1.5rem, 2.4vw, 2.2rem);
+}
+
+.hero-copy {
+  margin: 0;
+  max-width: 70ch;
+  color: var(--muted);
+}
+
+.main-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 1rem;
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 1rem;
+  box-shadow: 0 8px 20px rgba(30, 50, 70, 0.08);
+}
+
+.panel-header {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
 }
 
-.App-link {
-  color: #61dafb;
+.panel-header h2 {
+  margin: 0;
+  font-size: 1.15rem;
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
+.panel-header span {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.domain-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.8rem;
+}
+
+.domain-card {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.85rem;
+  background: #fff;
+}
+
+.domain-card h3 {
+  margin: 0 0 0.35rem;
+  text-transform: capitalize;
+}
+
+.domain-card p {
+  margin: 0 0 0.65rem;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.domain-card ul {
+  margin: 0;
+  padding-left: 1rem;
+  color: var(--brand);
+  font-size: 0.92rem;
+}
+
+.status-pill {
+  border-radius: 999px;
+  padding: 0.2rem 0.55rem;
+  font-weight: 700;
+}
+
+.status-pill--up {
+  color: var(--ok);
+  background: #dcfce7;
+}
+
+.status-pill--down {
+  color: var(--warn);
+  background: #ffedd5;
+}
+
+.status-pill--checking {
+  color: var(--pending);
+  background: #e5e7eb;
+}
+
+.status-text {
+  margin: 0 0 0.5rem;
+}
+
+.status-timestamp,
+.status-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+@media (max-width: 860px) {
+  .main-grid {
+    grid-template-columns: 1fr;
   }
 }

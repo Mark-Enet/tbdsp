@@ -1,3 +1,4 @@
+import logging
 import os
 import re
 
@@ -107,7 +108,7 @@ def get_schema_file(domain, database, filename):
     # Resolve the real path and confirm it stays inside the schemas directory
     schemas_base = os.path.realpath(_schemas_dir())
     file_path = os.path.realpath(os.path.join(schemas_base, domain, database, filename))
-    if not file_path.startswith(schemas_base + os.sep):
+    if os.path.commonpath([schemas_base, file_path]) != schemas_base:
         return jsonify({"error": "File not found"}), 404
 
     if not os.path.isfile(file_path):
@@ -117,6 +118,7 @@ def get_schema_file(domain, database, filename):
         with open(file_path, "r", encoding="utf-8") as f:
             content = f.read()
     except (OSError, UnicodeDecodeError) as exc:
-        return jsonify({"error": f"Could not read file: {exc}"}), 500
+        current_app.logger.error("Could not read schema file %s: %s", file_path, exc)
+        return jsonify({"error": "Could not read file"}), 500
 
     return jsonify({"domain": domain, "database": database, "filename": filename, "content": content})

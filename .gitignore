@@ -1,0 +1,44 @@
+# .gitignore
+
+# ── Node / JavaScript ──────────────────────────────────────────────────────────
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+dist/
+build/
+.next/
+.nuxt/
+.cache/
+
+# ── Environment & secrets ──────────────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+*.key
+*.pem
+
+# ── OS / editor artefacts ──────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ── Python ─────────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# ── Database dumps / local data ────────────────────────────────────────────────
+*.dump
+*.bak
+*.sql.gz
+
+# ── Logs ───────────────────────────────────────────────────────────────────────
+logs/
+*.log

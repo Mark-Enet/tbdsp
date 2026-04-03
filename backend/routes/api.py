@@ -1,7 +1,11 @@
+import json
 import os
 import re
 
-from flask import Blueprint, current_app, jsonify
+from flask import Blueprint, current_app, g, jsonify, request
+
+import psycopg2
+import psycopg2.extras
 
 api_bp = Blueprint("api", __name__, url_prefix="/api")
 
@@ -143,3 +147,263 @@ def get_schema_file(domain, database, filename):
         return jsonify({"error": "Could not read file"}), 500
 
     return jsonify({"domain": domain, "database": database, "filename": filename, "content": content})
+
+
+# ===========================================================================
+# Metadata routes — /api/meta/*
+# Data is read from the PostgreSQL metadata tables populated by seed.py.
+# ===========================================================================
+
+_DB_JSON = os.path.join(os.path.dirname(os.path.dirname(__file__)), "config", "config.json")
+
+
+def _get_db():
+    """Return a per-request psycopg2 connection, stored in Flask's g object."""
+    if "db" not in g:
+        env = os.environ.get("APP_ENV", "development")
+        if env == "default":
+            env = "development"
+        with open(_DB_JSON, encoding="utf-8") as fh:
+            all_cfg = json.load(fh)
+        cfg = all_cfg.get(env) or all_cfg.get("development")
+        g.db = psycopg2.connect(
+            dbname=cfg["database"],
+            user=cfg["username"],
+            password=cfg["password"],
+            host=cfg.get("host", "127.0.0.1"),
+            port=int(cfg.get("port", 5432)),
+        )
+    return g.db
+
+
+def _cur():
+    return _get_db().cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+
+@api_bp.route("/meta/domains", methods=["GET"])
+def meta_domains():
+    """Return all domains with per-domain engine, table, and column counts."""
+    cur = _cur()
+    cur.execute(
+        """
+        SELECT
+            d.id,
+            d.name,
+            d.description,
+            COUNT(DISTINCT de.id)  AS engine_count,
+            COUNT(DISTINCT st.id)  AS table_count,
+            COUNT(DISTINCT sc.id)  AS column_count
+        FROM domains d
+        LEFT JOIN database_engines de ON de.domain_id = d.id
+        LEFT JOIN schema_tables    st ON st.engine_id  = de.id
+        LEFT JOIN schema_columns   sc ON sc.table_id   = st.id
+        GROUP BY d.id, d.name, d.description
+        ORDER BY d.name
+        """
+    )
+    rows = [dict(r) for r in cur.fetchall()]
+    return jsonify(rows)
+
+
+@api_bp.route("/meta/domains/<domain>/engines", methods=["GET"])
+def meta_domain_engines(domain):
+    """Return the database engines available for a domain, with table counts."""
+    if not _is_safe_segment(domain):
+        return jsonify({"error": "Invalid domain name"}), 400
+    cur = _cur()
+    cur.execute(
+        """
+        SELECT
+            de.id,
+            de.engine,
+            de.version_note,
+            COUNT(DISTINCT st.id) AS table_count,
+            COUNT(DISTINCT sc.id) AS column_count,
+            COUNT(DISTINCT se.id) AS enum_count
+        FROM database_engines de
+        JOIN domains d ON d.id = de.domain_id
+        LEFT JOIN schema_tables  st ON st.engine_id = de.id
+        LEFT JOIN schema_columns sc ON sc.table_id  = st.id
+        LEFT JOIN schema_enums   se ON se.engine_id = de.id
+        WHERE d.name = %s
+        GROUP BY de.id, de.engine, de.version_note
+        ORDER BY de.engine
+        """,
+        (domain,),
+    )
+    rows = [dict(r) for r in cur.fetchall()]
+    if not rows:
+        return jsonify({"error": f"Domain '{domain}' not found or not yet seeded"}), 404
+    return jsonify(rows)
+
+
+@api_bp.route("/meta/domains/<domain>/<engine>/tables", methods=["GET"])
+def meta_tables(domain, engine):
+    """Return all tables for a domain/engine with column, index, and FK counts."""
+    if not _is_safe_segment(domain) or not _is_safe_segment(engine):
+        return jsonify({"error": "Invalid domain or engine name"}), 400
+    cur = _cur()
+    cur.execute(
+        """
+        SELECT
+            st.id,
+            st.name,
+            st.table_comment,
+            COUNT(DISTINCT sc.id)  AS column_count,
+            COUNT(DISTINCT si.id)  AS index_count,
+            COUNT(DISTINCT sfk.id) AS fk_count
+        FROM schema_tables st
+        JOIN database_engines de ON de.id = st.engine_id
+        JOIN domains d            ON d.id  = de.domain_id
+        LEFT JOIN schema_columns     sc  ON sc.table_id  = st.id
+        LEFT JOIN schema_indexes     si  ON si.table_id  = st.id
+        LEFT JOIN schema_foreign_keys sfk ON sfk.table_id = st.id
+        WHERE d.name = %s AND de.engine = %s
+        GROUP BY st.id, st.name, st.table_comment
+        ORDER BY st.name
+        """,
+        (domain, engine),
+    )
+    rows = [dict(r) for r in cur.fetchall()]
+    return jsonify(rows)
+
+
+@api_bp.route("/meta/domains/<domain>/<engine>/enums", methods=["GET"])
+def meta_enums(domain, engine):
+    """Return all enum types for a domain/engine."""
+    if not _is_safe_segment(domain) or not _is_safe_segment(engine):
+        return jsonify({"error": "Invalid domain or engine name"}), 400
+    cur = _cur()
+    cur.execute(
+        """
+        SELECT se.name, se.values
+        FROM schema_enums se
+        JOIN database_engines de ON de.id = se.engine_id
+        JOIN domains d            ON d.id  = de.domain_id
+        WHERE d.name = %s AND de.engine = %s
+        ORDER BY se.name
+        """,
+        (domain, engine),
+    )
+    rows = [dict(r) for r in cur.fetchall()]
+    return jsonify(rows)
+
+
+@api_bp.route("/meta/domains/<domain>/<engine>/tables/<table>", methods=["GET"])
+def meta_table_detail(domain, engine, table):
+    """Return full metadata for one table: columns, indexes, and foreign keys."""
+    if (
+        not _is_safe_segment(domain)
+        or not _is_safe_segment(engine)
+        or not _is_safe_segment(table)
+    ):
+        return jsonify({"error": "Invalid path segment"}), 400
+
+    cur = _cur()
+
+    # Table header
+    cur.execute(
+        """
+        SELECT st.id, st.name, st.table_comment, de.engine, de.version_note, d.name AS domain
+        FROM schema_tables st
+        JOIN database_engines de ON de.id = st.engine_id
+        JOIN domains d            ON d.id  = de.domain_id
+        WHERE d.name = %s AND de.engine = %s AND st.name = %s
+        """,
+        (domain, engine, table),
+    )
+    row = cur.fetchone()
+    if row is None:
+        return jsonify({"error": f"Table '{table}' not found"}), 404
+    table_id = row["id"]
+    result = {
+        "name": row["name"],
+        "comment": row["table_comment"],
+        "engine": row["engine"],
+        "version_note": row["version_note"],
+        "domain": row["domain"],
+    }
+
+    # Columns
+    cur.execute(
+        """
+        SELECT name, data_type, is_nullable, default_value,
+               is_primary_key, column_comment, position
+        FROM schema_columns
+        WHERE table_id = %s
+        ORDER BY position
+        """,
+        (table_id,),
+    )
+    result["columns"] = [dict(r) for r in cur.fetchall()]
+
+    # Indexes
+    cur.execute(
+        """
+        SELECT name, index_type, is_unique, is_partial, where_clause, columns
+        FROM schema_indexes
+        WHERE table_id = %s
+        ORDER BY name
+        """,
+        (table_id,),
+    )
+    result["indexes"] = [dict(r) for r in cur.fetchall()]
+
+    # Foreign keys
+    cur.execute(
+        """
+        SELECT constraint_name, from_columns, to_table, to_columns, on_delete, on_update
+        FROM schema_foreign_keys
+        WHERE table_id = %s
+        ORDER BY id
+        """,
+        (table_id,),
+    )
+    result["foreign_keys"] = [dict(r) for r in cur.fetchall()]
+
+    return jsonify(result)
+
+
+@api_bp.route("/meta/search", methods=["GET"])
+def meta_search():
+    """
+    Cross-domain full-text search across table names, column names,
+    table comments, and column comments.
+    Returns up to 100 results ordered by domain/engine/table/column.
+    """
+    q = request.args.get("q", "").strip()
+    if not q:
+        return jsonify([])
+    if len(q) > 200:
+        return jsonify({"error": "Query too long"}), 400
+
+    pattern = f"%{q}%"
+    cur = _cur()
+    cur.execute(
+        """
+        SELECT
+            d.name        AS domain,
+            de.engine,
+            st.name       AS table_name,
+            st.table_comment,
+            sc.name       AS column_name,
+            sc.data_type,
+            sc.is_nullable,
+            sc.is_primary_key,
+            sc.column_comment
+        FROM schema_columns sc
+        JOIN schema_tables     st ON st.id = sc.table_id
+        JOIN database_engines  de ON de.id = st.engine_id
+        JOIN domains           d  ON d.id  = de.domain_id
+        WHERE
+            sc.name          ILIKE %s OR
+            st.name          ILIKE %s OR
+            sc.column_comment ILIKE %s OR
+            st.table_comment  ILIKE %s
+        ORDER BY d.name, de.engine, st.name, sc.position
+        LIMIT 100
+        """,
+        (pattern, pattern, pattern, pattern),
+    )
+    rows = [dict(r) for r in cur.fetchall()]
+    return jsonify(rows)

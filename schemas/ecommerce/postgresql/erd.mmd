@@ -1,0 +1,123 @@
+erDiagram
+
+    customers {
+        uuid    id              PK
+        citext  email           UK
+        text    password_hash
+        varchar first_name
+        varchar last_name
+        varchar phone
+        boolean is_active
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    addresses {
+        uuid        id          PK
+        uuid        customer_id FK
+        address_type type
+        boolean     is_default
+        varchar     full_name
+        varchar     line1
+        varchar     line2
+        varchar     city
+        varchar     state
+        varchar     postal_code
+        char        country_code
+        varchar     phone
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    categories {
+        int     id          PK
+        int     parent_id   FK
+        varchar name
+        varchar slug        UK
+        text    description
+        timestamptz created_at
+    }
+
+    products {
+        uuid    id          PK
+        int     category_id FK
+        varchar name
+        varchar slug        UK
+        text    description
+        numeric base_price
+        char    currency
+        boolean is_active
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    product_variants {
+        uuid    id              PK
+        uuid    product_id      FK
+        varchar sku             UK
+        jsonb   attributes
+        numeric price_override
+        int     stock_qty
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    orders {
+        uuid        id              PK
+        uuid        customer_id     FK
+        order_status status
+        jsonb       shipping_address
+        numeric     subtotal
+        numeric     shipping_cost
+        numeric     discount_amount
+        numeric     tax_amount
+        numeric     total_amount
+        text        notes
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    order_items {
+        uuid    id          PK
+        uuid    order_id    FK
+        uuid    variant_id  FK
+        int     quantity
+        numeric unit_price
+        numeric discount
+    }
+
+    payments {
+        uuid           id                  PK
+        uuid           order_id            FK
+        payment_method method
+        payment_status status
+        numeric        amount
+        char           currency
+        varchar        provider_reference
+        timestamptz    processed_at
+        timestamptz    created_at
+        timestamptz    updated_at
+    }
+
+    reviews {
+        uuid    id          PK
+        uuid    product_id  FK
+        uuid    customer_id FK
+        smallint rating
+        varchar title
+        text    body
+        boolean is_verified
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    customers       ||--o{ addresses        : "has"
+    customers       ||--o{ orders           : "places"
+    customers       ||--o{ reviews          : "writes"
+    categories      ||--o{ categories       : "parent of"
+    categories      ||--o{ products         : "contains"
+    products        ||--o{ product_variants : "has"
+    products        ||--o{ reviews          : "receives"
+    orders          ||--|{ order_items      : "contains"
+    orders          ||--o{ payments         : "paid via"
+    product_variants ||--o{ order_items    : "referenced in"

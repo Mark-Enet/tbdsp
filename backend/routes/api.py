@@ -128,8 +128,10 @@ def get_schema_file(domain, database, filename):
     if db_path is None:
         return jsonify({"error": "File not found"}), 404
 
-    # filename is from a known allowlist; db_path is filesystem-derived.
-    file_path = os.path.join(db_path, filename)
+    # Use the value from the allowlist (not the raw user input) to build the path,
+    # so the path is constructed entirely from trusted/filesystem-derived values.
+    safe_filename = next(f for f in _ALLOWED_FILES if f == filename)
+    file_path = os.path.join(db_path, safe_filename)
     if not os.path.isfile(file_path):
         return jsonify({"error": "File not found"}), 404
 

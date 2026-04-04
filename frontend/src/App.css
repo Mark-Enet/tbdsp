@@ -33,6 +33,18 @@ body {
   margin-bottom: 1.5rem;
 }
 
+.hero-title {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.hero-logo {
+  width: 72px;
+  height: 72px;
+  flex-shrink: 0;
+}
+
 .hero-top {
   display: flex;
   align-items: flex-start;

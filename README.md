@@ -1,5 +1,9 @@
 # TBDSP — The Big DataBase Standards Project
 
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/4c464bed-9bb2-4780-821c-10ac483941fc" alt="TBDSP Logo" width="120" />
+</p>
+
 > An open-source collection of standardized, reusable database schemas with sample data, documentation, and a future interactive web UI.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)

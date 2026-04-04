@@ -234,7 +234,7 @@ Key columns:
 
 ### `practitioners`
 
-Medical professionals who deliver patient care. Each practitioner has a unique `license_number` (state/national medical licence) and a `role` enum that governs access and scheduling rules.
+Medical professionals who deliver patient care. Each practitioner has a unique `license_number` (state/national medical license) and a `role` enum that governs access and scheduling rules.
 
 | Role | Description |
 |------|-------------|

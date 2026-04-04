@@ -165,7 +165,7 @@ CREATE INDEX idx_practitioners_active        ON practitioners (last_name, first_
 
 COMMENT ON TABLE  practitioners                   IS 'Medical professionals who deliver patient care.';
 COMMENT ON COLUMN practitioners.role              IS 'Clinical role — governs access and scheduling rules.';
-COMMENT ON COLUMN practitioners.license_number    IS 'State/national medical licence number — must be unique.';
+COMMENT ON COLUMN practitioners.license_number    IS 'State/national medical license number — must be unique.';
 COMMENT ON COLUMN practitioners.specialization    IS 'Free-text specialty, e.g. "Interventional Cardiology".';
 
 -- ---------------------------------------------------------------------------

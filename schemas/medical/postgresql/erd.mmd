@@ -1,0 +1,159 @@
+erDiagram
+
+    departments {
+        int         id          PK
+        varchar     name
+        varchar     code        UK
+        text        description
+        timestamptz created_at
+    }
+
+    patients {
+        uuid        id                      PK
+        citext      email                   UK
+        text        password_hash
+        varchar     first_name
+        varchar     last_name
+        date        date_of_birth
+        gender      gender
+        varchar     phone
+        varchar     address_line1
+        varchar     address_line2
+        varchar     city
+        varchar     state
+        varchar     postal_code
+        char        country_code
+        varchar     emergency_contact_name
+        varchar     emergency_contact_phone
+        boolean     is_active
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    practitioners {
+        uuid              id               PK
+        int               department_id    FK
+        citext            email            UK
+        text              password_hash
+        varchar           first_name
+        varchar           last_name
+        practitioner_role role
+        varchar           specialization
+        varchar           license_number   UK
+        varchar           phone
+        boolean           is_active
+        timestamptz       created_at
+        timestamptz       updated_at
+    }
+
+    appointments {
+        uuid               id               PK
+        uuid               patient_id       FK
+        uuid               practitioner_id  FK
+        int                department_id    FK
+        timestamptz        scheduled_at
+        smallint           duration_minutes
+        appointment_status status
+        text               reason
+        text               notes
+        timestamptz        created_at
+        timestamptz        updated_at
+    }
+
+    encounters {
+        uuid           id               PK
+        uuid           patient_id       FK
+        uuid           practitioner_id  FK
+        uuid           appointment_id   FK
+        int            department_id    FK
+        encounter_type type
+        timestamptz    started_at
+        timestamptz    ended_at
+        text           chief_complaint
+        text           clinical_notes
+        text           discharge_summary
+        timestamptz    created_at
+        timestamptz    updated_at
+    }
+
+    diagnoses {
+        uuid        id           PK
+        uuid        encounter_id FK
+        varchar     code
+        text        description
+        boolean     is_primary
+        timestamptz noted_at
+    }
+
+    medications {
+        int         id            PK
+        varchar     rxnorm_code   UK
+        varchar     name
+        varchar     generic_name
+        varchar     drug_class
+        varchar     dosage_form
+        varchar     strength
+        boolean     is_controlled
+        timestamptz created_at
+    }
+
+    prescriptions {
+        uuid                id               PK
+        uuid                encounter_id     FK
+        int                 medication_id    FK
+        uuid                prescribed_by    FK
+        varchar             dosage
+        varchar             frequency
+        varchar             route
+        smallint            duration_days
+        smallint            refills_allowed
+        text                instructions
+        prescription_status status
+        timestamptz         prescribed_at
+        timestamptz         created_at
+        timestamptz         updated_at
+    }
+
+    lab_orders {
+        uuid             id           PK
+        uuid             encounter_id FK
+        uuid             ordered_by   FK
+        varchar          panel_name
+        varchar          loinc_code
+        varchar          priority
+        lab_order_status status
+        text             notes
+        timestamptz      ordered_at
+        timestamptz      collected_at
+        timestamptz      created_at
+        timestamptz      updated_at
+    }
+
+    lab_results {
+        uuid        id              PK
+        uuid        lab_order_id    FK
+        varchar     test_name
+        varchar     loinc_code
+        text        value
+        varchar     unit
+        varchar     reference_range
+        boolean     is_abnormal
+        timestamptz resulted_at
+        timestamptz created_at
+    }
+
+    departments      ||--o{ practitioners  : "employs"
+    departments      ||--o{ appointments   : "hosts"
+    departments      ||--o{ encounters     : "handles"
+    patients         ||--o{ appointments   : "books"
+    patients         ||--o{ encounters     : "has"
+    practitioners    ||--o{ appointments   : "attends"
+    practitioners    ||--o{ encounters     : "conducts"
+    practitioners    ||--o{ prescriptions  : "writes"
+    practitioners    ||--o{ lab_orders     : "orders"
+    appointments     ||--o| encounters     : "leads to"
+    encounters       ||--o{ diagnoses      : "records"
+    encounters       ||--o{ prescriptions  : "generates"
+    encounters       ||--o{ lab_orders     : "generates"
+    medications      ||--o{ prescriptions  : "prescribed in"
+    lab_orders       ||--o{ lab_results    : "produces"

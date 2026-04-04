@@ -1,5 +1,6 @@
 import './App.css';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import logo from './tbdsp-logo-169x200.png';
 
 const FILE_LABELS = {
   schema: 'Schema SQL',
@@ -338,13 +339,13 @@ function App() {
         <div className="hero-top">
           <div className="hero-title">
             <img
-              src="https://github.com/user-attachments/assets/4c464bed-9bb2-4780-821c-10ac483941fc"
+              src={logo}
               alt="TBDSP logo"
               className="hero-logo"
             />
             <div>
               <p className="eyebrow">TBDSP</p>
-              <h1>Tabular Data &amp; Benchmarking Schema Playground</h1>
+              <h1>The Big Database Standards Project</h1>
               <p className="hero-copy">
                 Explore tables, columns, indexes, and foreign keys across multiple domains and database engines.
               </p>

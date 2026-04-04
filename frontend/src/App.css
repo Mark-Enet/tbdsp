@@ -40,8 +40,10 @@ body {
 }
 
 .hero-logo {
-  width: 72px;
-  height: 72px;
+  height: 64px;
+  width: auto;
+  max-width: 180px;
+  object-fit: contain;
   flex-shrink: 0;
 }
 

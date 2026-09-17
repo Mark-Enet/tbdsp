@@ -1,0 +1,112 @@
+erDiagram
+
+    organizations {
+        uuid id PK
+        varchar name UK
+        varchar tax_id UK
+        char base_currency
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    suppliers {
+        uuid id PK
+        uuid organization_id FK
+        varchar name
+        citext contact_email
+        int payment_terms_days
+        boolean is_active
+    }
+
+    customers {
+        uuid id PK
+        uuid organization_id FK
+        varchar name
+        citext email
+        numeric credit_limit
+        boolean is_active
+    }
+
+    products {
+        uuid id PK
+        uuid organization_id FK
+        varchar sku UK
+        varchar name
+        varchar unit_of_measure
+        numeric list_price
+        boolean is_active
+    }
+
+    warehouses {
+        uuid id PK
+        uuid organization_id FK
+        varchar code UK
+        varchar name
+        varchar city
+    }
+
+    sales_orders {
+        uuid id PK
+        uuid organization_id FK
+        uuid customer_id FK
+        varchar order_number UK
+        order_status status
+        numeric total_amount
+    }
+
+    sales_order_items {
+        uuid id PK
+        uuid sales_order_id FK
+        uuid product_id FK
+        int line_no
+        numeric quantity
+        numeric unit_price
+    }
+
+    purchase_orders {
+        uuid id PK
+        uuid organization_id FK
+        uuid supplier_id FK
+        varchar po_number UK
+        procurement_status status
+        numeric total_amount
+    }
+
+    purchase_order_items {
+        uuid id PK
+        uuid purchase_order_id FK
+        uuid product_id FK
+        int line_no
+        numeric quantity_ordered
+        numeric unit_cost
+    }
+
+    stock_moves {
+        uuid id PK
+        uuid organization_id FK
+        uuid product_id FK
+        uuid warehouse_id FK
+        stock_move_type move_type
+        numeric quantity
+        numeric unit_cost
+        timestamptz moved_at
+    }
+
+    organizations ||--o{ suppliers : has
+    organizations ||--o{ customers : has
+    organizations ||--o{ products : has
+    organizations ||--o{ warehouses : has
+    organizations ||--o{ sales_orders : has
+    organizations ||--o{ purchase_orders : has
+    organizations ||--o{ stock_moves : has
+
+    customers ||--o{ sales_orders : places
+    suppliers ||--o{ purchase_orders : receives
+
+    sales_orders ||--o{ sales_order_items : contains
+    purchase_orders ||--o{ purchase_order_items : contains
+
+    products ||--o{ sales_order_items : sold_as
+    products ||--o{ purchase_order_items : bought_as
+    products ||--o{ stock_moves : moved
+    warehouses ||--o{ stock_moves : stores

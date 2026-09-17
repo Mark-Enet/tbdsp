@@ -61,6 +61,7 @@ TBDSP/
 |--------|----------|--------|-------------|
 | [E-Commerce](schemas/ecommerce/postgresql/README.md) | PostgreSQL | ✅ Available | Customers, product catalog, orders, payments, and reviews |
 | [Blogging / CMS](schemas/blogging/postgresql/README.md) | PostgreSQL | ✅ Available | Authors, hierarchical categories, tags, posts with publishing workflow, threaded comments, and media |
+| [ERP](schemas/erp/postgresql/README.md) | PostgreSQL | ✅ Available | Organizations, suppliers, customers, products, warehouses, and order workflows |
 | E-Commerce | MySQL | 🚧 Planned | |
 | Healthcare | PostgreSQL | 🔜 Roadmap | |
 | Finance | PostgreSQL | 🔜 Roadmap | |
@@ -94,6 +95,7 @@ Visit the [GitHub repository](https://github.com/Mark-Enet/tbdsp) and navigate i
 1. **Phase 1 — Schema Library** *(current)*
    - [x] E-Commerce domain — PostgreSQL
    - [x] Blogging / CMS domain — PostgreSQL
+   - [x] ERP domain — PostgreSQL
    - [ ] E-Commerce domain — MySQL
    - [ ] Healthcare domain — PostgreSQL
    - [ ] Finance domain — PostgreSQL
